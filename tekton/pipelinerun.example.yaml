@@ -1,0 +1,26 @@
+# Example PipelineRun — copy, set namespace, and apply after ImageStream + Pipeline + Task exist.
+# Grant the ServiceAccount image pusher role, for example:
+#   oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NS:pipeline -n YOUR_NS
+#
+# Workspace options:
+# - PVC: create a PVC, clone this repo into it, then use subPath or populate as shown in volumes.
+# - volumeClaimTemplate: empty PVC per run (still need to populate source — often paired with a git-clone Task).
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: redhat-screensaver-build-
+  labels:
+    app: redhat-screensaver
+spec:
+  pipelineRef:
+    name: redhat-screensaver-build
+  serviceAccountName: pipeline
+  # Optional; Pipeline defaults push to:
+  # image-registry.openshift-image-registry.svc:5000/<this-namespace>/redhat-screensaver:latest
+  # params:
+  #   - name: image-tag
+  #     value: "1.0.0"
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: redhat-screensaver-source-pvc
