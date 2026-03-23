@@ -1,0 +1,54 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+  font-family: system-ui, sans-serif;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#floater {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: min(40vw, 320px);
+  max-height: min(40vh, 320px);
+  width: auto;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+#floater.ready {
+  opacity: 1;
+}
+
+#status {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #888;
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 90vw;
+  z-index: 1;
+}
+
+#status:empty {
+  display: none;
+}

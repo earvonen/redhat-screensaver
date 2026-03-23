@@ -1,0 +1,16 @@
+{
+  "name": "redhat-screensaver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Screensaver-style browser app with Node.js backend",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
