@@ -1,0 +1,67 @@
+# Runs the app image from the ImageStream (tag latest). The image trigger keeps the
+# Deployment aligned with ImageStreamTag redhat-screensaver:latest after Tekton pushes.
+# Apply in the same namespace as the ImageStream and Pipeline.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redhat-screensaver
+  labels:
+    app: redhat-screensaver
+  annotations:
+    image.openshift.io/triggers: |-
+      [
+        {
+          "from": {
+            "kind": "ImageStreamTag",
+            "name": "redhat-screensaver:latest"
+          },
+          "fieldPath": "spec.template.spec.containers[?(@.name==\"redhat-screensaver\")].image",
+          "paused": false
+        }
+      ]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redhat-screensaver
+  template:
+    metadata:
+      labels:
+        app: redhat-screensaver
+    spec:
+      containers:
+        - name: redhat-screensaver
+          image: redhat-screensaver:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 1001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
