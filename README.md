@@ -41,7 +41,7 @@ Static files are served from `public/`. Any other `GET` request falls back to `p
 - `images/` — Drop **`redhat.png`** here
 - `Containerfile` — production container image
 - `openshift/imagestream.yaml` — `ImageStream` for the app image
-- `tekton/` — Buildah `Task`, `Pipeline`, and example `PipelineRun`
+- `tekton/` — git-clone `Task`, Kaniko build `Task`, `Pipeline`, and example `PipelineRun`
 
 Animation tuning (speed, angle range) lives in `public/app.js`.
 
@@ -66,10 +66,11 @@ Resources live under `openshift/` and `tekton/`.
    oc apply -f openshift/imagestream.yaml
    ```
 
-2. **Task & Pipeline** — Buildah-based build/push and a Pipeline that targets  
+2. **Tasks & Pipeline** — a **git-clone** Task (default clone from [https://github.com/earvonen/redhat-screensaver](https://github.com/earvonen/redhat-screensaver) on `main`), then Kaniko build/push (**no privileged containers**). The Pipeline targets  
    `$(image-registry)/$(PipelineRun.namespace)/redhat-screensaver:$(image-tag)` (defaults match the ImageStream name and `latest` tag):
 
    ```bash
+   oc apply -f tekton/task-git-clone.yaml
    oc apply -f tekton/task-build-push.yaml
    oc apply -f tekton/pipeline.yaml
    ```
@@ -80,8 +81,10 @@ Resources live under `openshift/` and `tekton/`.
    oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NAMESPACE:pipeline -n YOUR_NAMESPACE
    ```
 
-4. **Workspace** — the Pipeline needs a workspace with the repo root (including `Containerfile`). See `tekton/pvc.example.yaml` for a sample PVC; populate it with a git clone or copy of the sources, then start a run from `tekton/pipelinerun.example.yaml` (set `metadata.namespace` and match the PVC name).
+4. **Workspaces** — the Pipeline needs:
+   - **shared-workspace:** starts empty; the **fetch-source** task clones the Git repo into it, then **build-and-push** uses the same workspace as the Kaniko context. `pipelinerun.example.yaml` uses **`emptyDir`**. You can switch to a PVC (see `tekton/pvc.example.yaml`) if you need more space or persistence.
+   - **dockerconfig:** a Secret of type **kubernetes.io/dockerconfigjson** (so Kaniko can push). Bind it in `pipelinerun.example.yaml` (`REPLACE_WITH_DOCKERCONFIGJSON_SECRET`). Create one with registry credentials, or on OpenShift use a suitable secret from `oc describe serviceaccount pipeline` after linking pull/push credentials.
 
-The build `Task` runs **privileged** Buildah with `vfs` storage, which is a common OpenShift Pipelines pattern. If your cluster restricts that, switch to an approved build strategy (for example an external CI that pushes the image, or a cluster-supported build task).
+   Override clone source or branch on the Pipeline with params **`git-url`** and **`git-revision`** on the `PipelineRun` if needed.
 
-**Pull secret:** the Task uses `registry.redhat.io/ubi9/buildah`. Your cluster needs credentials to pull that image (often already configured on OpenShift).
+The build `Task` uses **Kaniko** (`gcr.io/kaniko-project/executor`) plus a small **ubi-micro** prep step; neither step uses `privileged: true`. Your cluster must be allowed to **pull** the Kaniko image (mirror it if `gcr.io` is blocked). The Task passes **`--skip-tls-verify`** so pushes to the default internal registry hostname usually work without extra CA wiring; tighten that if your policy requires verified TLS.

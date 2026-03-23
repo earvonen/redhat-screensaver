@@ -22,16 +22,39 @@ spec:
     - name: containerfile
       type: string
       default: Containerfile
+    - name: git-url
+      type: string
+      default: https://github.com/earvonen/redhat-screensaver.git
+    - name: git-revision
+      type: string
+      default: main
   workspaces:
     - name: shared-workspace
-      description: Source code including Containerfile
+      description: Populated by git-clone, then consumed by Kaniko build
+    - name: dockerconfig
+      description: Registry push credentials (dockerconfigjson Secret)
   tasks:
+    - name: fetch-source
+      taskRef:
+        name: redhat-screensaver-git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
     - name: build-and-push
+      runAfter:
+        - fetch-source
       taskRef:
         name: redhat-screensaver-build-push
       workspaces:
         - name: source
           workspace: shared-workspace
+        - name: dockerconfig
+          workspace: dockerconfig
       params:
         - name: IMAGE
           value: $(params.image-registry)/$(context.pipelineRun.namespace)/$(params.image-name):$(params.image-tag)

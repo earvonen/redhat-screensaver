@@ -1,10 +1,14 @@
-# Example PipelineRun — copy, set namespace, and apply after ImageStream + Pipeline + Task exist.
+# Example PipelineRun — copy, set namespace, and apply after ImageStream + Pipeline + Tasks exist.
 # Grant the ServiceAccount image pusher role, for example:
 #   oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NS:pipeline -n YOUR_NS
 #
-# Workspace options:
-# - PVC: create a PVC, clone this repo into it, then use subPath or populate as shown in volumes.
-# - volumeClaimTemplate: empty PVC per run (still need to populate source — often paired with a git-clone Task).
+# dockerconfig: bind a kubernetes.io/dockerconfigjson Secret. On OpenShift, find the pipeline SA token:
+#   oc describe sa pipeline -n YOUR_NS
+# Look for a Secret named like pipeline-dockercfg-xxxxx (type kubernetes.io/dockercfg may need conversion;
+# prefer creating: oc create secret docker-registry regcred ... or link the internal registry pull secret).
+#
+# shared-workspace: the Pipeline clones the Git repo here, then Kaniko builds from it. emptyDir is enough.
+# Alternatively use a PVC if you need a larger disk or to debug the workspace across retries.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -22,5 +26,7 @@ spec:
   #     value: "1.0.0"
   workspaces:
     - name: shared-workspace
-      persistentVolumeClaim:
-        claimName: redhat-screensaver-source-pvc
+      emptyDir: {}
+    - name: dockerconfig
+      secret:
+        secretName: REPLACE_WITH_DOCKERCONFIGJSON_SECRET

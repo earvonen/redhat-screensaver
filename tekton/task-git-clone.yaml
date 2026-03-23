@@ -1,0 +1,31 @@
+# Clone the screensaver repository into the output workspace (repository root = workspace root).
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: redhat-screensaver-git-clone
+  labels:
+    app: redhat-screensaver
+spec:
+  description: Shallow clone of redhat-screensaver from GitHub
+  workspaces:
+    - name: output
+      description: Empty directory; clone lands at workspace root (Containerfile at top level)
+  params:
+    - name: url
+      type: string
+      description: Git remote URL
+      default: https://github.com/earvonen/redhat-screensaver.git
+    - name: revision
+      type: string
+      description: Branch or tag to checkout
+      default: main
+  steps:
+    - name: clone
+      image: docker.io/alpine/git:v2.47.1
+      securityContext:
+        allowPrivilegeEscalation: false
+      script: |
+        #!/bin/sh
+        set -eu
+        cd "$(workspaces.output.path)"
+        git clone --depth 1 --branch "$(params.revision)" "$(params.url)" .
