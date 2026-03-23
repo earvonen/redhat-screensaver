@@ -1,5 +1,6 @@
-# Build and push using Kaniko (no privileged container). Bind a dockerconfigjson Secret
-# to the dockerconfig workspace so pushes to the internal registry can authenticate.
+# Build and push using Kaniko (no privileged container). Push auth for the OpenShift
+# internal registry is built from the Task pod's ServiceAccount token (no dockerconfig Secret).
+# Grant the PipelineRun ServiceAccount system:image-pusher in the namespace.
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
@@ -11,10 +12,6 @@ spec:
   workspaces:
     - name: source
       description: Repository root containing Containerfile
-    - name: dockerconfig
-      description: >
-        Secret type kubernetes.io/dockerconfigjson (key .dockerconfigjson).
-        On OpenShift, use the pipeline SA dockercfg secret (oc describe sa pipeline).
   params:
     - name: IMAGE
       type: string
@@ -22,23 +19,33 @@ spec:
     - name: CONTAINERFILE
       type: string
       default: Containerfile
+    - name: registry-host
+      type: string
+      description: >
+        Host:port for Docker auth (must match the registry in IMAGE). Used as the key in config.json auths.
+      default: image-registry.openshift-image-registry.svc:5000
   volumes:
     - name: kaniko-docker-config
       emptyDir: {}
   steps:
-    - name: prepare-docker-config
-      image: registry.access.redhat.com/ubi9/ubi-micro:latest
+    - name: prepare-registry-auth
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
       securityContext:
         allowPrivilegeEscalation: false
       script: |
-        #!/bin/sh
-        set -eu
-        SRC="$(workspaces.dockerconfig.path)/.dockerconfigjson"
-        if [ ! -f "$SRC" ]; then
-          echo "Missing .dockerconfigjson in dockerconfig workspace (use a dockerconfigjson Secret)."
+        #!/bin/bash
+        set -euo pipefail
+        TOKEN_FILE=/var/run/secrets/kubernetes.io/serviceaccount/token
+        if [ ! -r "$TOKEN_FILE" ]; then
+          echo "ServiceAccount token not mounted (check automountServiceAccountToken on the Task pod)."
           exit 1
         fi
-        cp "$SRC" /tmp/kaniko-docker/config.json
+        TOKEN=$(tr -d '\n\r' < "$TOKEN_FILE")
+        REG="$(params.registry-host)"
+        # OpenShift internal registry accepts arbitrary non-empty user + SA token as password.
+        AUTH=$(printf 'openshift:%s' "$TOKEN" | base64 -w0)
+        mkdir -p /tmp/kaniko-docker
+        printf '{"auths":{"%s":{"auth":"%s"}}}\n' "$REG" "$AUTH" > /tmp/kaniko-docker/config.json
       volumeMounts:
         - name: kaniko-docker-config
           mountPath: /tmp/kaniko-docker

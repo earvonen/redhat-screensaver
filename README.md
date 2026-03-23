@@ -90,16 +90,14 @@ Resources live under `openshift/` and `tekton/`.
    oc apply -f tekton/pipeline.yaml
    ```
 
-4. **Service account** — allow the Tekton `pipeline` service account (or whichever SA you set on the `PipelineRun`) to push images in the namespace:
+4. **Service account** — the build `Task` logs in to the **internal registry** using the **PipelineRun ServiceAccount token** (mounted automatically). That account still needs permission to push:
 
    ```bash
    oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NAMESPACE:pipeline -n YOUR_NAMESPACE
    ```
 
-5. **Workspaces** — the Pipeline needs:
-   - **shared-workspace:** starts empty; the **fetch-source** task clones the Git repo into it, then **build-and-push** uses the same workspace as the Kaniko context. `pipelinerun.example.yaml` uses **`emptyDir`**. You can switch to a PVC (see `tekton/pvc.example.yaml`) if you need more space or persistence.
-   - **dockerconfig:** a Secret of type **kubernetes.io/dockerconfigjson** (so Kaniko can push). Bind it in `pipelinerun.example.yaml` (`REPLACE_WITH_DOCKERCONFIGJSON_SECRET`). Create one with registry credentials, or on OpenShift use a suitable secret from `oc describe serviceaccount pipeline` after linking pull/push credentials.
+5. **Workspaces** — only **shared-workspace** is required: the **fetch-source** task clones the Git repo into it, then **build-and-push** uses it as the Kaniko context. `pipelinerun.example.yaml` uses **`emptyDir`**. You can switch to a PVC (see `tekton/pvc.example.yaml`) if you need more space or persistence.
 
    Override clone source or branch on the Pipeline with params **`git-url`** and **`git-revision`** on the `PipelineRun` if needed.
 
-The build `Task` uses **Kaniko** (`gcr.io/kaniko-project/executor`) plus a small **ubi-micro** prep step; neither step uses `privileged: true`. Your cluster must be allowed to **pull** the Kaniko image (mirror it if `gcr.io` is blocked). The Task passes **`--skip-tls-verify`** so pushes to the default internal registry hostname usually work without extra CA wiring; tighten that if your policy requires verified TLS.
+The build `Task` uses **Kaniko** (`gcr.io/kaniko-project/executor`) plus a small **ubi-minimal** step that writes `~/.docker/config.json` from the SA token; neither step uses `privileged: true`. Pushing to registries **other** than the configured **`image-registry`** host may require a different approach (for example a custom `dockerconfig` workspace or external CI). The Task passes **`--skip-tls-verify`** for the default internal registry hostname; tighten that if your policy requires verified TLS.

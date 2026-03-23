@@ -1,11 +1,8 @@
 # Example PipelineRun — copy, set namespace, and apply after ImageStream + Pipeline + Tasks exist.
-# Grant the ServiceAccount image pusher role, for example:
+# Grant the ServiceAccount permission to push to the internal registry, for example:
 #   oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NS:pipeline -n YOUR_NS
 #
-# dockerconfig: bind a kubernetes.io/dockerconfigjson Secret. On OpenShift, find the pipeline SA token:
-#   oc describe sa pipeline -n YOUR_NS
-# Look for a Secret named like pipeline-dockercfg-xxxxx (type kubernetes.io/dockercfg may need conversion;
-# prefer creating: oc create secret docker-registry regcred ... or link the internal registry pull secret).
+# The build Task derives registry credentials from the mounted ServiceAccount token (no dockerconfig Secret).
 #
 # shared-workspace: the Pipeline clones the Git repo here, then Kaniko builds from it. emptyDir is enough.
 # Alternatively use a PVC if you need a larger disk or to debug the workspace across retries.
@@ -27,6 +24,3 @@ spec:
   workspaces:
     - name: shared-workspace
       emptyDir: {}
-    - name: dockerconfig
-      secret:
-        secretName: REPLACE_WITH_DOCKERCONFIGJSON_SECRET
