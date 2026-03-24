@@ -11,6 +11,10 @@ const IMAGE_PATH = path.join(ROOT, "images", "redhat.png");
 app.use(express.static(PUBLIC));
 
 app.get("/api/image", (req, res) => {
+  // Check if file exists before sending
+  if (!fs.existsSync(IMAGE_PATH)) {
+    return res.status(404).json({ error: "Image not found" });
+  }
   res.type("image/png");
   res.sendFile(IMAGE_PATH);
 });
