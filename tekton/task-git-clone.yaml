@@ -31,5 +31,6 @@ spec:
         ROOT="$(workspaces.output.path)"
         cd "$ROOT"
         # Same PVC on a later PipelineRun still has the old tree; git clone … . requires an empty dir.
-        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+        # Use + instead of \; to avoid failure when directory is empty (find returns 1 when no files match)
+        find . -mindepth 1 -maxdepth 1 -exec rm -rf {} + || true
         git clone --depth 1 --branch "$(params.revision)" "$(params.url)" .
