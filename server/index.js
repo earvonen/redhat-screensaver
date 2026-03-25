@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, "..");
 const PUBLIC = path.join(ROOT, "public");
-const IMAGE_PATH = path.join(ROOT, "images", "redhat.png");
+const IMAGE_PATH = path.join(ROOT, "images", "redgdfgdhat.png");
 
 app.use(express.static(PUBLIC));
 
