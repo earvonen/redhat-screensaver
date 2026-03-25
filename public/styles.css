@@ -52,3 +52,31 @@ body {
 #status:empty {
   display: none;
 }
+
+#change-image {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #333;
+  background: rgba(20, 20, 20, 0.85);
+  color: #ccc;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+#change-image:hover {
+  background: rgba(40, 40, 40, 0.9);
+  color: #fff;
+}
+
+#change-image:active {
+  background: rgba(60, 60, 60, 0.95);
+}
