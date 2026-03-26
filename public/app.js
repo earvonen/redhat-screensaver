@@ -2,6 +2,7 @@
   const stage = document.getElementById("stage");
   const img = document.getElementById("floater");
   const status = document.getElementById("status");
+  const switchBtn = document.getElementById("switch-btn");
 
   let vx = 0;
   let vy = 0;
@@ -73,6 +74,44 @@
       clampPosition();
       applyTransform();
     }
+  });
+
+  // Handle switch button click
+  switchBtn.addEventListener("click", () => {
+    fetch("/api/switch", { method: "POST" })
+      .then(async (res) => {
+        if (!res.ok) {
+          const ct = res.headers.get("content-type") || "";
+          if (ct.includes("application/json")) {
+            const body = await res.json();
+            throw new Error(body.error || res.statusText);
+          }
+          throw new Error(res.statusText || "Request failed");
+        }
+        return res.json();
+      })
+      .then(() => {
+        // Reload the image to show the new one
+        fetch("/api/image")
+          .then((res) => res.blob())
+          .then((blob) => {
+            const url = URL.createObjectURL(blob);
+            img.onload = () => {
+              URL.revokeObjectURL(url);
+              img.classList.add("ready");
+              status.textContent = "";
+              startMotion();
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(url);
+              status.textContent = "Could not display the image.";
+            };
+            img.src = url;
+          });
+      })
+      .catch((err) => {
+        status.textContent = err.message || "Failed to switch image.";
+      });
   });
 
   fetch("/api/image")
