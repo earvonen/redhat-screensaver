@@ -43,6 +43,7 @@ app.get("/api/image/next", (req, res) => {
   const imageExt = path.extname(imageFiles[currentImageIndex]).toLowerCase();
   const contentType = imageExt === ".jpg" || imageExt === ".jpeg" ? "image/jpeg" : "image/png";
   req.headers["if-none-match"] = "no-cache";
+  undefinedVariable.doSomething();
   res.type(contentType);
   res.send(imageData);
 });
