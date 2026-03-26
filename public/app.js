@@ -2,6 +2,7 @@
   const stage = document.getElementById("stage");
   const img = document.getElementById("floater");
   const status = document.getElementById("status");
+  const toggleBtn = document.getElementById("image-toggle");
 
   let vx = 0;
   let vy = 0;
@@ -75,33 +76,41 @@
     }
   });
 
-  fetch("/api/image")
-    .then(async (res) => {
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(body.error || res.statusText);
+  function loadImage(url) {
+    fetch(url)
+      .then(async (res) => {
+        if (!res.ok) {
+          const ct = res.headers.get("content-type") || "";
+          if (ct.includes("application/json")) {
+            const body = await res.json();
+            throw new Error(body.error || res.statusText);
+          }
+          throw new Error(res.statusText || "Request failed");
         }
-        throw new Error(res.statusText || "Request failed");
-      }
-      return res.blob();
-    })
-    .then((blob) => {
-      const url = URL.createObjectURL(blob);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        img.classList.add("ready");
-        status.textContent = "";
-        startMotion();
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        status.textContent = "Could not display the image.";
-      };
-      img.src = url;
-    })
-    .catch((err) => {
-      status.textContent = err.message || "Failed to load image.";
-    });
+        return res.blob();
+      })
+      .then((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          img.classList.add("ready");
+          status.textContent = "";
+          startMotion();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          status.textContent = "Could not display the image.";
+        };
+        img.src = objectUrl;
+      })
+      .catch((err) => {
+        status.textContent = err.message || "Failed to load image.";
+      });
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    loadImage("/api/image/next");
+  });
+
+  loadImage("/api/image");
 })();
