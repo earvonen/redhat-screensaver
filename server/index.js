@@ -34,10 +34,6 @@ app.post("/api/switch", (req, res) => {
   const imageFile = images[currentImageIndex];
   const IMAGE_PATH = path.join(IMAGES_DIR, imageFile);
   
-  // Bug: Try to access a method of an undefined variable
-  // This will cause an error when the button is pressed
-  undefinedVariable.someMethod();
-  
   res.json({ success: true, image: imageFile });
 });
 
