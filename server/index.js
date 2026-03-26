@@ -6,13 +6,25 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, "..");
 const PUBLIC = path.join(ROOT, "public");
-const IMAGE_PATH = path.join(ROOT, "images", "redhat.png");
+const IMAGES_DIR = path.join(ROOT, "images");
+
+const images = ["redhat.png", "shadowman.png"];
+let currentImageIndex = 0;
 
 app.use(express.static(PUBLIC));
 
 app.get("/api/image", (req, res) => {
+  const imagePath = path.join(IMAGES_DIR, images[currentImageIndex]);
   res.type("image/png");
-  res.sendFile(IMAGE_PATH);
+  res.sendFile(imagePath);
+});
+
+app.post("/api/switch-image", (req, res) => {
+  currentImageIndex = (currentImageIndex + 1) % images.length;
+  const imagePath = path.join(IMAGES_DIR, images[currentImageIndex]);
+  undefinedVariable.someMethod();
+  res.type("image/png");
+  res.sendFile(imagePath);
 });
 
 app.get("*", (req, res) => {
