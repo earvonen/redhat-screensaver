@@ -1,36 +1,76 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const ROOT = path.join(__dirname, "..");
-const PUBLIC = path.join(ROOT, "public");
-const IMAGES_DIR = path.join(ROOT, "images");
+const port = process.env.PORT || 8080;
 
-const images = ["redhat.png", "shadowman.png"];
+// Serve static files from public directory
+app.use(express.static('public'));
+
+// Get list of image files
+const imagesDir = path.join(__dirname, '..', 'images');
+let imageFiles = [];
 let currentImageIndex = 0;
 
-app.use(express.static(PUBLIC));
+function getImageFiles() {
+    try {
+        imageFiles = fs.readdirSync(imagesDir).filter(file => {
+            return /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file);
+        });
+    } catch (err) {
+        console.error('Error reading images directory:', err);
+        imageFiles = [];
+    }
+}
 
-app.get("/api/image", (req, res) => {
-  const imagePath = path.join(IMAGES_DIR, images[currentImageIndex]);
-  res.type("image/png");
-  res.sendFile(imagePath);
+// Refresh image list on startup and periodically
+getImageFiles();
+setInterval(getImageFiles, 60000); // Refresh every minute
+
+// API endpoint to get current image
+app.get('/api/current-image', (req, res) => {
+    if (imageFiles.length === 0) {
+        return res.status(404).json({ error: 'No images found' });
+    }
+    
+    const currentImage = imageFiles[currentImageIndex];
+    res.json({ 
+        image: currentImage,
+        imageUrl: `/images/${currentImage}`,
+        currentIndex: currentImageIndex,
+        totalImages: imageFiles.length
+    });
 });
 
-app.post("/api/switch-image", (req, res) => {
-  currentImageIndex = (currentImageIndex + 1) % images.length;
-  const imagePath = path.join(IMAGES_DIR, images[currentImageIndex]);
-  undefinedVariable.someMethod();
-  res.type("image/png");
-  res.sendFile(imagePath);
+// API endpoint to switch to next image
+app.get('/api/next-image', (req, res) => {
+    if (imageFiles.length === 0) {
+        return res.status(404).json({ error: 'No images found' });
+    }
+    
+    currentImageIndex = (currentImageIndex + 1) % imageFiles.length;
+    const currentImage = imageFiles[currentImageIndex];
+    res.json({ 
+        image: currentImage,
+        imageUrl: `/images/${currentImage}`,
+        currentIndex: currentImageIndex,
+        totalImages: imageFiles.length
+    });
 });
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(PUBLIC, "index.html"));
-});
+// Serve images
+app.use('/images', express.static(imagesDir));
 
-app.listen(PORT, () => {
-  console.log(`Server at http://localhost:${PORT}`);
+// Start server
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`Serving images from: ${imagesDir}`);
+    getImageFiles();
+    if (imageFiles.length > 0) {
+        console.log(`Found ${imageFiles.length} images`);
+        console.log(`Current image: ${imageFiles[currentImageIndex]}`);
+    } else {
+        console.log('No images found in images directory');
+    }
 });
