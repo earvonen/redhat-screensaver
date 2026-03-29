@@ -1,26 +1,23 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
+const express = require('express');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const ROOT = path.join(__dirname, "..");
-const PUBLIC = path.join(ROOT, "public");
-const IMAGE_PATH = path.join(ROOT, "images", "shadowman.png");
 
-app.use(express.static(PUBLIC));
+const undefinedVar = {
+  methodThatDoesntExists: function() {
+    return 'Hello from methodThatDoesntExists!';
+  }
+};
 
-app.get("/api/image", (req, res) => {
-  var breaker = undefined;
-  breaker.methodThatDoesntExists();
-  res.type("image/png");
-  res.sendFile(IMAGE_PATH);
+undefinedVar.methodThatDoesntExists();
+
+app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(PUBLIC, "index.html"));
-});
-
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Server at http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
