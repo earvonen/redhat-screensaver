@@ -8,7 +8,7 @@
   let x = 0;
   let y = 0;
   let rafId = 0;
-  const speed = 6;
+  const speed = 12;
 
   function pickVelocity() {
     const angleMin = 0.698;
