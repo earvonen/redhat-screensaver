@@ -1,4 +1,5 @@
 # Clone the screensaver repository into the output workspace (repository root = workspace root).
+# If source already exists locally (e.g., from a previous run or pre-populated), use it directly.
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
@@ -6,11 +7,12 @@ metadata:
   labels:
     app: redhat-screensaver
 spec:
-  description: Shallow clone of redhat-screensaver from GitHub
+  description: Shallow clone of redhat-screensaver from GitHub, or use local source if available
   workspaces:
     - name: output
       description: >
-        Clone lands at workspace root. Existing entries (e.g. from a previous run on the same PVC) are removed first.
+        Clone lands at workspace root. If source already exists locally, it will be used directly.
+        Existing entries (e.g. from a previous run on the same PVC) are removed first.
   params:
     - name: url
       type: string
@@ -30,6 +32,19 @@ spec:
         set -eu
         ROOT="$(workspaces.output.path)"
         cd "$ROOT"
+
+        # Check if essential source files already exist locally (e.g., from previous run or pre-populated)
+        # If so, skip cloning and use the existing source
+        if [ -f "Containerfile" ] || [ -f "package.json" ] || [ -f "server/index.js" ]; then
+          echo "Source files already exist in workspace, using local source instead of cloning"
+          # Clean up any partial/old files but keep the existing source
+          find . -mindepth 1 -maxdepth 1 -type f -delete 2>/dev/null || true
+          # List what's in the workspace for debugging
+          echo "Workspace contents:"
+          ls -la
+          exit 0
+        fi
+
         # Same PVC on a later PipelineRun still has the old tree; git clone … . requires an empty dir.
         find . -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
         git clone --depth 1 --branch "$(params.revision)" "$(params.url)" .
