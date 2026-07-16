@@ -12,7 +12,7 @@ A small **Node.js + Express** app that serves a static frontend and a PNG over H
 npm install
 ```
 
-Place your asset at **`images/redhat.png`**. Without that file, the API returns 404 and the UI shows an error message.
+Place your asset at **`images/shadowman.png`**. Without that file, the API returns 404 and the UI shows an error message.
 
 ## Run
 
@@ -30,7 +30,7 @@ Open [http://localhost:3000](http://localhost:3000). To use another port, set `P
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/image` | Returns `images/redhat.png` with `Content-Type: image/png`, or JSON `{ "error": "..." }` with status 404 if the file is missing. |
+| `GET` | `/api/image` | Returns `images/shadowman.png` with `Content-Type: image/png`, or JSON `{ "error": "..." }` with status 404 if the file is missing. |
 
 Static files are served from `public/`. Any other `GET` request falls back to `public/index.html`.
 
@@ -38,7 +38,7 @@ Static files are served from `public/`. Any other `GET` request falls back to `p
 
 - `server/index.js` — Express server
 - `public/` — HTML, CSS, and client script for the screensaver UI
-- `images/` — Drop **`redhat.png`** here
+- `images/` — Drop **`shadowman.png`** here
 - `Containerfile` — production container image
 - `openshift/imagestream.yaml` — `ImageStream` for the app image
 - `openshift/deployment.yaml`, `openshift/service.yaml`, `openshift/route.yaml` — run the image on OpenShift
