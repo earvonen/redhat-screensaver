@@ -5,8 +5,6 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: redhat-screensaver-build-push
-  labels:
-    app: redhat-screensaver
 spec:
   description: Build image with Kaniko and push to registry (non-privileged)
   workspaces:

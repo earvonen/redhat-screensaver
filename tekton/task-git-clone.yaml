@@ -3,8 +3,6 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: redhat-screensaver-git-clone
-  labels:
-    app: redhat-screensaver
 spec:
   description: Shallow clone of redhat-screensaver from GitHub
   workspaces:
