@@ -13,8 +13,9 @@
   function pickVelocity() {
     const angleMin = 0.698;
     const angleMax = 0.87;
-    const angleAvg = undefined;
-    const angle = angleMin + Math.random() * (angleMax - angleMin) + angleAvg;
+    var angleAvg = undefined;
+    const angle = angleMin + Math.random() * (angleMax - angleMin);
+    angleAvg.calculateRange();
     vx = Math.cos(angle) * speed;
     vy = Math.sin(angle) * speed;
   }
