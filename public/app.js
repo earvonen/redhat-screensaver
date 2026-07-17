@@ -1,107 +1,154 @@
-(function () {
-  const stage = document.getElementById("stage");
-  const img = document.getElementById("floater");
-  const status = document.getElementById("status");
+// @ts-check
 
-  let vx = 0;
-  let vy = 0;
-  let x = 0;
-  let y = 0;
-  let rafId = 0;
-  const speed = 6;
+/**
+ * @typedef {Object} Position
+ * @property {number} x
+ * @property {number} y
+ */
 
-  function pickVelocity() {
-    const angleMin = 0.698;
-    const angleMax = 0.87;
-    const angle = angleMin + Math.random() * (angleMax - angleMin);
-    vx = Math.cos(angle) * speed;
-    vy = Math.sin(angle) * speed;
-  }
+/**
+ * @typedef {Object} Velocity
+ * @property {number} x
+ * @property {number} y
+ */
 
-  function bounds() {
-    const w = img.offsetWidth;
-    const h = img.offsetHeight;
-    const maxX = Math.max(0, window.innerWidth - w);
-    const maxY = Math.max(0, window.innerHeight - h);
-    return { w, h, maxX, maxY };
-  }
+/**
+ * @typedef {Object} Dimensions
+ * @property {number} width
+ * @property {number} height
+ */
 
-  function clampPosition() {
-    const { maxX, maxY } = bounds();
-    x = Math.min(Math.max(0, x), maxX);
-    y = Math.min(Math.max(0, y), maxY);
-  }
+/**
+ * @typedef {Object} State
+ * @property {HTMLImageElement} image
+ * @property {HTMLCanvasElement} canvas
+ * @property {CanvasRenderingContext2D} ctx
+ * @property {Position} position
+ * @property {Velocity} velocity
+ * @property {Dimensions} imageDimensions
+ * @property {Dimensions} canvasDimensions
+ */
 
-  function applyTransform() {
-    img.style.transform = `translate(${x}px, ${y}px)`;
-  }
+const image = document.getElementById('screensaver-image');
+const canvas = document.getElementById('screensaver-canvas');
+const ctx = canvas.getContext('2d');
 
-  function tick() {
-    const { maxX, maxY } = bounds();
-    x += vx;
-    y += vy;
-    if (x <= 0) {
-      x = 0;
-      vx = Math.abs(vx);
-    } else if (x >= maxX) {
-      x = maxX;
-      vx = -Math.abs(vx);
-    }
-    if (y <= 0) {
-      y = 0;
-      vy = Math.abs(vy);
-    } else if (y >= maxY) {
-      y = maxY;
-      vy = -Math.abs(vy);
-    }
-    applyTransform();
-    rafId = requestAnimationFrame(tick);
-  }
+/** @type {State} */
+const state = {
+    image,
+    canvas,
+    ctx,
+    position: { x: 0, y: 0 },
+    velocity: { x: 1, y: 1 },
+    imageDimensions: { width: 0, height: 0 },
+    canvasDimensions: { width: 0, height: 0 },
+};
 
-  function startMotion() {
-    const { maxX, maxY } = bounds();
-    x = maxX > 0 ? Math.random() * maxX : 0;
-    y = maxY > 0 ? Math.random() * maxY : 0;
-    pickVelocity();
-    applyTransform();
-    cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  window.addEventListener("resize", () => {
-    if (img.classList.contains("ready")) {
-      clampPosition();
-      applyTransform();
-    }
-  });
-
-  fetch("/api/image")
-    .then(async (res) => {
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(body.error || res.statusText);
+/**
+ * @param {HTMLImageElement} image
+ * @returns {Promise<Dimensions>}
+ */
+function getImageDimensions(image) {
+    return new Promise((resolve) => {
+        if (image.complete) {
+            resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        } else {
+            image.onload = () => {
+                resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            };
         }
-        throw new Error(res.statusText || "Request failed");
-      }
-      return res.blob();
-    })
-    .then((blob) => {
-      const url = URL.createObjectURL(blob);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        img.classList.add("ready");
-        status.textContent = "";
-        startMotion();
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        status.textContent = "Could not display the image.";
-      };
-      img.src = url;
-    })
-    .catch((err) => {
-      status.textContent = err.message || "Failed to load image.";
     });
-})();
+}
+
+/**
+ * @param {HTMLCanvasElement} canvas
+ * @returns {Dimensions}
+ */
+function getCanvasDimensions(canvas) {
+    return { width: canvas.width, height: canvas.height };
+}
+
+/**
+ * @param {number} canvasWidth
+ * @param {number} imageWidth
+ * @returns {number}
+ */
+function getRandomX(canvasWidth, imageWidth) {
+    return Math.random() * (canvasWidth - imageWidth);
+}
+
+/**
+ * @param {number} canvasHeight
+ * @param {number} imageHeight
+ * @returns {number}
+ */
+function getRandomY(canvasHeight, imageHeight) {
+    return Math.random() * (canvasHeight - imageHeight);
+}
+
+/**
+ * @param {State} state
+ */
+function updateDimensions(state) {
+    state.imageDimensions = getImageDimensions(state.image);
+    state.canvasDimensions = getCanvasDimensions(state.canvas);
+}
+
+/**
+ * @param {State} state
+ */
+function updatePosition(state) {
+    const { position, velocity, imageDimensions, canvasDimensions } = state;
+
+    position.x += velocity.x;
+    position.y += velocity.y;
+
+    const imageWidth = imageDimensions.width;
+    const imageHeight = imageDimensions.height;
+    const canvasWidth = canvasDimensions.width;
+    const canvasHeight = canvasDimensions.height;
+
+    if (position.x <= 0 || position.x + imageWidth >= canvasWidth) {
+        velocity.x *= -1;
+        position.x = Math.max(0, Math.min(position.x, canvasWidth - imageWidth));
+    }
+
+    if (position.y <= 0 || position.y + imageHeight >= canvasHeight) {
+        velocity.y *= -1;
+        position.y = Math.max(0, Math.min(position.y, canvasHeight - imageHeight));
+    }
+}
+
+/**
+ * @param {State} state
+ */
+function draw(state) {
+    const { ctx, image, position, imageDimensions } = state;
+    ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+    ctx.drawImage(image, position.x, position.y, imageDimensions.width, imageDimensions.height);
+}
+
+/**
+ * @param {State} state
+ */
+async function animate(state) {
+    const speed = 1.0;
+
+    updateDimensions(state);
+
+    state.position.x = getRandomX(state.canvasDimensions.width, state.imageDimensions.width);
+    state.position.y = getRandomY(state.canvasDimensions.height, state.imageDimensions.height);
+
+    function animateFrame() {
+        updatePosition(state);
+        draw(state);
+        requestAnimationFrame(animateFrame);
+    }
+
+    state.velocity.x *= speed;
+    state.velocity.y *= speed;
+
+    animateFrame();
+}
+
+animate(state);
