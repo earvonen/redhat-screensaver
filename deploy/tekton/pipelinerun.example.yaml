@@ -1,11 +1,13 @@
 # Example PipelineRun — copy, set namespace, and apply after ImageStream + Pipeline + Tasks exist.
 # Grant the ServiceAccount permission to push to the internal registry, for example:
 #   oc policy add-role-to-user system:image-pusher system:serviceaccount:YOUR_NS:pipeline -n YOUR_NS
+# Kaniko needs UID 0 on OpenShift:
+#   oc adm policy add-scc-to-user anyuid -z pipeline -n YOUR_NS
 #
 # The build Task derives registry credentials from the mounted ServiceAccount token (no dockerconfig Secret).
 #
-# shared-workspace: the Pipeline clones the Git repo here, then Kaniko builds from it. emptyDir is enough.
-# Alternatively use a PVC if you need a larger disk or to debug the workspace across retries.
+# shared-workspace must be a PVC (not emptyDir): each Pipeline Task is a separate Pod,
+# and emptyDir is not shared between Pods. volumeClaimTemplate creates a per-run PVC.
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -23,4 +25,13 @@ spec:
   #     value: "1.0.0"
   workspaces:
     - name: shared-workspace
-      emptyDir: {}
+      volumeClaimTemplate:
+        metadata:
+          labels:
+            app: redhat-screensaver
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

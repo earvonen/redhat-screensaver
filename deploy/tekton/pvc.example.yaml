@@ -1,5 +1,5 @@
-# Example PVC for PipelineRun workspace — clone this repository into the volume
-# (e.g. a Job or manual pod) before starting the PipelineRun, or mount and sync CI artifacts.
+# Optional named PVC alternative to PipelineRun volumeClaimTemplate.
+# Prefer volumeClaimTemplate in pipelinerun.example.yaml / deploy.sh for per-run cleanup.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
