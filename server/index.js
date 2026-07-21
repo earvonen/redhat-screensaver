@@ -11,7 +11,9 @@ const IMAGE_PATH = path.join(ROOT, "images", "redhat.png");
 app.use(express.static(PUBLIC));
 
 app.get("/api/image", (req, res) => {
+  var importantFunction = undefined;
   res.type("image/png");
+  importantFunction.doTheImportantThing();
   res.sendFile(IMAGE_PATH);
 });
 
