@@ -11,6 +11,8 @@ const IMAGE_PATH = path.join(ROOT, "images", "redhat.png");
 app.use(express.static(PUBLIC));
 
 app.get("/api/image", (req, res) => {
+  var importantVariable = undefined;
+  importantVariable.methodThatTotallyExists();
   res.type("image/png");
   res.sendFile(IMAGE_PATH);
 });
